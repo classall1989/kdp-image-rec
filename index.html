@@ -52,14 +52,17 @@
             </div>
         </div>
 
-        <button id="analyzeButton" class="w-full bg-blue-500 text-white py-3 md:py-4 rounded-lg font-bold text-lg md:text-xl hover:bg-blue-600 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-            Analyze Shelf
+        <button id="analyzeButton" class="w-full bg-blue-500 text-white py-3 md:py-4 rounded-lg font-bold text-lg md:text-xl hover:bg-blue-600 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center" disabled>
+            <svg id="loadingSpinner" class="animate-spin -ml-1 mr-3 h-6 w-6 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span id="buttonText">Analyze Shelf</span>
         </button>
 
         <div id="statusMessage" class="mt-4 p-3 bg-gray-100 rounded-lg text-center text-sm text-gray-600">
             Awaiting image capture...
         </div>
-
     </div>
 
     <script>
@@ -69,26 +72,24 @@
         const analyzeButton = document.getElementById('analyzeButton');
         const imagePreview = document.getElementById('imagePreview');
         const previewContainer = document.getElementById('previewContainer');
-        const filePrompt = document.getElementById('filePrompt');
-        const statusMessage = document.getElementById('statusMessage');
         const fileInputWrapper = document.querySelector('.file-input-wrapper');
+        const statusMessage = document.getElementById('statusMessage');
+        
+        // EDITED: Get references to the new spinner and text elements
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const buttonText = document.getElementById('buttonText');
 
         let capturedFile = null;
 
-        // 1. Handle file selection (display preview)
         cameraInput.addEventListener('change', (event) => {
             const files = event.target.files;
             if (files.length > 0) {
                 capturedFile = files[0];
                 const reader = new FileReader();
-
                 reader.onload = (e) => {
-                    // Display image preview
                     imagePreview.src = e.target.result;
                     previewContainer.classList.remove('hidden');
-                    // Hide the initial upload prompt
                     fileInputWrapper.classList.add('hidden');
-                    // Update button and prompt
                     analyzeButton.disabled = false;
                     updateStatus('Image loaded. Ready to analyze.', 'text-green-800 bg-green-100');
                 };
@@ -96,20 +97,25 @@
             }
         });
 
-        // 2. Handle analysis (redirect to target URL)
+        // EDITED: Updated click handler for the loading state
         analyzeButton.addEventListener('click', () => {
             if (!capturedFile) {
                 updateStatus('Error: Please capture an image first.', 'text-red-800 bg-red-100');
                 return;
             }
 
-            updateStatus('Success! Opening application...', 'text-blue-800 bg-blue-100');
+            // 1. Change button to "thinking" state
+            analyzeButton.disabled = true;
+            loadingSpinner.classList.remove('hidden');
+            buttonText.textContent = 'Analyzing...'; // Change text to show alongside spinner
+            updateStatus('Please wait while we analyze the image...', 'text-blue-800 bg-blue-100');
 
-            // Redirect immediately to prevent the browser from blocking the custom URL
-            window.location.href = TARGET_URL;
+            // 2. Wait 5 seconds before redirecting
+            setTimeout(() => {
+                window.location.href = TARGET_URL;
+            }, 5000); // 5000 milliseconds = 5 seconds
         });
 
-        // Helper function for status updates
         function updateStatus(message, classes = 'text-gray-600 bg-gray-100') {
             statusMessage.textContent = message;
             statusMessage.className = `mt-4 p-3 rounded-lg text-center text-sm transition-colors duration-300 ${classes}`;
