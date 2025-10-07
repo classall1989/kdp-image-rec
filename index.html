@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beverage Shelf Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7fafc;
+        }
+        .container-card {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0px 10px -5px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease-in-out;
+        }
+        .file-input-wrapper {
+            cursor: pointer;
+            border: 2px dashed #90cdf4;
+            transition: all 0.2s;
+        }
+        .file-input-wrapper:hover {
+            border-color: #4299e1;
+            background-color: #e0f2fe;
+        }
+        /* Hide default file input */
+        #cameraInput {
+            display: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div id="appContainer" class="container-card w-full max-w-md md:max-w-2xl bg-white p-6 md:p-10 rounded-xl">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 text-center mb-4">
+            Shelf Photo Analyzer
+        </h1>
+        <p class="text-sm md:text-base text-center text-gray-500 mb-8">
+            Capture a clear, well-lit image of the beverage shelf.
+        </p>
+
+        <div class="mb-6">
+            <input type="file" id="cameraInput" accept="image/*" capture="environment">
+
+            <label for="cameraInput" class="file-input-wrapper flex flex-col items-center justify-center p-10 rounded-lg text-primary hover:text-blue-600">
+                <svg class="w-10 h-10 md:w-12 md:h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.865-1.577A2 2 0 0111.97 3h.063a2 2 0 011.664.89l.865 1.577a2 2 0 001.664.89H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span id="filePrompt" class="text-sm md:text-base font-semibold">Tap to Capture Shelf Image</span>
+            </label>
+
+            <div id="previewContainer" class="mt-4 hidden border border-gray-200 rounded-lg overflow-hidden">
+                <img id="imagePreview" src="#" alt="Image Preview" class="w-full h-48 md:h-80 object-cover">
+            </div>
+        </div>
+
+        <button id="analyzeButton" class="w-full bg-blue-500 text-white py-3 md:py-4 rounded-lg font-bold text-lg md:text-xl hover:bg-blue-600 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            Analyze Shelf
+        </button>
+
+        <div id="statusMessage" class="mt-4 p-3 bg-gray-100 rounded-lg text-center text-sm text-gray-600">
+            Awaiting image capture...
+        </div>
+
+    </div>
+
+    <script>
+        const TARGET_URL = 'cgcloud://share?payload=W3siUHJkTWFpblBLZXkiOiIwMXRXczAwMDAwNWxMcm9JQUUiLCJKb2JEZWZpbml0aW9uTWV0YVBLZXkiOiJhMVhXczAwMDAwMGp1dVFNQVEiLCJWYWx1ZSI6MjV9LHsiUHJkTWFpblBLZXkiOiIwMXRXczAwMDAwNWxMcm9JQUUiLCJKb2JEZWZpbml0aW9uTWV0YVBLZXkiOiJhMVhXczAwMDAwMGp1dVdNQVEiLCJWYWx1ZSI6IkRpc3RyaWJ1dGVkIn0seyJQcmRNYWluUEtleSI6IjAxdFdzMDAwMDA1bExzMUlBRSIsIkpvYkRlZmluaXRpb25NZXRhUEtleSI6ImExWFdzMDAwMDAwanV1V01BUSIsIlZhbHVlIjoiT3V0T2ZTdG9jayJ9LHsiUHJkTWFpblBLZXkiOiIwMXRXczAwMDAwNWxMczFJQUUiLCJKb2JEZWZpbml0aW9uTWV0YVBLZXkiOiJhMVhXczAwMDAwMGp1dVFNQVEiLCJWYWx1ZSI6MTB9XQ==';
+
+        const cameraInput = document.getElementById('cameraInput');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewContainer = document.getElementById('previewContainer');
+        const filePrompt = document.getElementById('filePrompt');
+        const statusMessage = document.getElementById('statusMessage');
+        const fileInputWrapper = document.querySelector('.file-input-wrapper');
+
+        let capturedFile = null;
+
+        // 1. Handle file selection (display preview)
+        cameraInput.addEventListener('change', (event) => {
+            const files = event.target.files;
+            if (files.length > 0) {
+                capturedFile = files[0];
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    // Display image preview
+                    imagePreview.src = e.target.result;
+                    previewContainer.classList.remove('hidden');
+                    // Hide the initial upload prompt
+                    fileInputWrapper.classList.add('hidden');
+                    // Update button and prompt
+                    analyzeButton.disabled = false;
+                    updateStatus('Image loaded. Ready to analyze.', 'text-green-800 bg-green-100');
+                };
+                reader.readAsDataURL(capturedFile);
+            }
+        });
+
+        // 2. Handle analysis (redirect to target URL)
+        analyzeButton.addEventListener('click', () => {
+            if (!capturedFile) {
+                updateStatus('Error: Please capture an image first.', 'text-red-800 bg-red-100');
+                return;
+            }
+
+            updateStatus('Success! Opening application...', 'text-blue-800 bg-blue-100');
+
+            // Redirect immediately to prevent the browser from blocking the custom URL
+            window.location.href = TARGET_URL;
+        });
+
+        // Helper function for status updates
+        function updateStatus(message, classes = 'text-gray-600 bg-gray-100') {
+            statusMessage.textContent = message;
+            statusMessage.className = `mt-4 p-3 rounded-lg text-center text-sm transition-colors duration-300 ${classes}`;
+        }
+    </script>
+</body>
+</html>
